@@ -11,6 +11,9 @@ public class NoteResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String imagePath;
+    private String category;
+    private String color;
+    private boolean isPinned;
 
     public NoteResponse(Note note) {
         this.id = note.getId().toString();
@@ -20,6 +23,9 @@ public class NoteResponse {
         this.createdAt = note.getCreatedAt();
         this.updatedAt = note.getUpdatedAt();
         this.imagePath = note.getImagePath();
+        this.category = note.getCategory();
+        this.color = note.getColor();
+        this.isPinned = note.isPinned();
     }
 
     // Getters and Setters
@@ -77,5 +83,29 @@ public class NoteResponse {
 
     public void setImagePath(String imagePath) {
         this.imagePath = imagePath;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getColor() {
+        return color;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
+    }
+
+    public boolean isPinned() {
+        return isPinned;
+    }
+
+    public void setPinned(boolean pinned) {
+        isPinned = pinned;
     }
 }

@@ -13,6 +13,9 @@ class NotesListPage extends StatefulWidget {
 }
 
 class _NotesListPageState extends State<NotesListPage> {
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -56,16 +59,43 @@ class _NotesListPageState extends State<NotesListPage> {
       builder: (context, authProvider, notesProvider, themeProvider, child) {
         return Scaffold(
           appBar: AppBar(
-            title: Text(
-              'My Notes',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            title: _isSearching
+                ? TextField(
+                    controller: _searchController,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: 'Search notes...',
+                      border: InputBorder.none,
+                      hintStyle: TextStyle(color: Colors.white70),
+                    ),
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                    onChanged: (value) {
+                      notesProvider.setSearchQuery(value);
+                    },
+                  )
+                : Text(
+                    'My Notes',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
             backgroundColor: Color(0xFF6A5ACD),
             elevation: 0,
             actions: [
+              IconButton(
+                icon: Icon(_isSearching ? Icons.close : Icons.search, color: Colors.white),
+                onPressed: () {
+                  setState(() {
+                    _isSearching = !_isSearching;
+                    if (!_isSearching) {
+                      _searchController.clear();
+                      notesProvider.setSearchQuery('');
+                    }
+                  });
+                },
+                tooltip: _isSearching ? 'Close Search' : 'Search',
+              ),
               IconButton(
                 icon: Icon(
                   themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
@@ -170,12 +200,16 @@ class _NotesListPageState extends State<NotesListPage> {
                                         width: 70,
                                         height: 70,
                                         decoration: BoxDecoration(
-                                          color: Color(0xFF6A5ACD).withOpacity(0.1),
+                                          color: (note.color != null 
+                                            ? Color(int.parse(note.color!)) 
+                                            : Color(0xFF6A5ACD)).withOpacity(0.1),
                                           borderRadius: BorderRadius.circular(12),
                                         ),
                                         child: Icon(
                                           Icons.note_outlined,
-                                          color: Color(0xFF6A5ACD),
+                                          color: note.color != null 
+                                            ? Color(int.parse(note.color!)) 
+                                            : Color(0xFF6A5ACD),
                                           size: 36,
                                         ),
                                       ),
@@ -184,15 +218,47 @@ class _NotesListPageState extends State<NotesListPage> {
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Text(
-                                            note.title,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 18,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
+                                          Row(
+                                            children: [
+                                              if (note.isPinned)
+                                                Padding(
+                                                  padding: EdgeInsets.only(right: 6),
+                                                  child: Icon(
+                                                    Icons.push_pin,
+                                                    size: 16,
+                                                    color: Color(0xFF6A5ACD),
+                                                  ),
+                                                ),
+                                              Expanded(
+                                                child: Text(
+                                                  note.title,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 18,
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
                                           ),
+                                          if (note.category != null)
+                                            Container(
+                                              margin: EdgeInsets.only(top: 4),
+                                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey[200],
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: Text(
+                                                note.category!,
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: Colors.grey[700],
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
                                           SizedBox(height: 6),
                                           Text(
                                             note.content,

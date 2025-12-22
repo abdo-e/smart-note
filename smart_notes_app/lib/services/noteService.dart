@@ -24,7 +24,8 @@ Future<List<Note>> fetchNotes(String userId) async {
   }
 }
 
-Future<Note?> createNote(String userId, String title, String content, [String? imagePath]) async {
+Future<Note?> createNote(String userId, String title, String content, 
+    {String? imagePath, String? category, String? color, bool isPinned = false}) async {
   final url = Uri.parse('$apiBaseUrl/api/notes');
   try {
     // Convert userId to integer for Spring Boot Long type
@@ -37,6 +38,9 @@ Future<Note?> createNote(String userId, String title, String content, [String? i
         'title': title,
         'content': content,
         'imagePath': imagePath,
+        'category': category,
+        'color': color,
+        'isPinned': isPinned,
       }),
     );
     
@@ -54,7 +58,8 @@ Future<Note?> createNote(String userId, String title, String content, [String? i
   }
 }
 
-Future<Note?> updateNote(String noteId, String title, String content, [String? imagePath]) async {
+Future<Note?> updateNote(String noteId, String title, String content, 
+    {String? imagePath, String? category, String? color, bool isPinned = false}) async {
   final url = Uri.parse('$apiBaseUrl/api/notes/$noteId');
   try {
     final response = await http.put(
@@ -64,6 +69,9 @@ Future<Note?> updateNote(String noteId, String title, String content, [String? i
         'title': title,
         'content': content,
         'imagePath': imagePath,
+        'category': category,
+        'color': color,
+        'isPinned': isPinned,
       }),
     );
     

@@ -24,6 +24,20 @@ class _AddEditNotePageState extends State<AddEditNotePage> {
   bool isEditMode = false;
   String? _imageBase64;
   File? _imageFile;
+  bool _isPinned = false;
+  String? _selectedCategory;
+  Color _selectedColor = Color(0xFF6A5ACD); // Default color
+
+  final List<String> _categories = ['Personal', 'Work', 'Study', 'Ideas', 'Others'];
+  final List<Color> _colors = [
+    Color(0xFF6A5ACD), // Slate Blue
+    Colors.red[400]!,
+    Colors.green[400]!,
+    Colors.blue[400]!,
+    Colors.orange[400]!,
+    Colors.pink[400]!,
+    Colors.teal[400]!,
+  ];
 
   @override
   void didChangeDependencies() {
@@ -39,6 +53,15 @@ class _AddEditNotePageState extends State<AddEditNotePage> {
           titleController.text = currentNote!.title;
           contentController.text = currentNote!.content;
           _imageBase64 = currentNote!.imagePath;
+          _isPinned = currentNote!.isPinned;
+          _selectedCategory = currentNote!.category;
+          if (currentNote!.color != null) {
+            try {
+              _selectedColor = Color(int.parse(currentNote!.color!));
+            } catch (e) {
+              _selectedColor = Color(0xFF6A5ACD);
+            }
+          }
         }
       }
     }
@@ -93,14 +116,20 @@ class _AddEditNotePageState extends State<AddEditNotePage> {
           currentNote!.id,
           titleController.text,
           contentController.text,
-          _imageBase64,
+          imagePath: _imageBase64,
+          category: _selectedCategory,
+          color: _selectedColor.value.toString(),
+          isPinned: _isPinned,
         );
       } else {
         success = await notesProvider.addNote(
           authProvider.currentUser!.id,
           titleController.text,
           contentController.text,
-          _imageBase64,
+          imagePath: _imageBase64,
+          category: _selectedCategory,
+          color: _selectedColor.value.toString(),
+          isPinned: _isPinned,
         );
       }
 
@@ -133,6 +162,17 @@ class _AddEditNotePageState extends State<AddEditNotePage> {
         ),
         backgroundColor: Color(0xFF6A5ACD),
         iconTheme: IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            icon: Icon(_isPinned ? Icons.push_pin : Icons.push_pin_outlined),
+            onPressed: () {
+              setState(() {
+                _isPinned = !_isPinned;
+              });
+            },
+            tooltip: _isPinned ? 'Unpin' : 'Pin',
+          ),
+        ],
       ),
       body: Form(
         key: formKey,
@@ -141,6 +181,93 @@ class _AddEditNotePageState extends State<AddEditNotePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Category and Color Row
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedCategory,
+                      decoration: InputDecoration(
+                        labelText: 'Category',
+                        prefixIcon: Icon(Icons.category_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      items: _categories.map((String category) {
+                        return DropdownMenuItem<String>(
+                          value: category,
+                          child: Text(category),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          _selectedCategory = newValue;
+                        });
+                      },
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Container(
+                    height: 58,
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('Color: '),
+                        InkWell(
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: Text('Pick a Color'),
+                                content: Wrap(
+                                  spacing: 12,
+                                  runSpacing: 12,
+                                  children: _colors.map((color) {
+                                    return InkWell(
+                                      onTap: () {
+                                        setState(() {
+                                          _selectedColor = color;
+                                        });
+                                        Navigator.pop(context);
+                                      },
+                                      child: Container(
+                                        width: 44,
+                                        height: 44,
+                                        decoration: BoxDecoration(
+                                          color: color,
+                                          shape: BoxShape.circle,
+                                          border: _selectedColor == color
+                                              ? Border.all(color: Colors.black, width: 2)
+                                              : null,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            width: 30,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              color: _selectedColor,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 20),
               TextFormField(
                 controller: titleController,
                 decoration: InputDecoration(
