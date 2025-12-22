@@ -16,7 +16,7 @@ public class NoteService {
     private NoteRepository noteRepository;
 
     public List<NoteResponse> getNotesByUserId(Long userId) {
-        List<Note> notes = noteRepository.findByUserIdOrderByUpdatedAtDesc(userId);
+        List<Note> notes = noteRepository.findByUserIdOrderByIsPinnedDescUpdatedAtDesc(userId);
         return notes.stream()
                 .map(NoteResponse::new)
                 .collect(Collectors.toList());
@@ -28,6 +28,9 @@ public class NoteService {
         note.setTitle(request.getTitle());
         note.setContent(request.getContent());
         note.setImagePath(request.getImagePath());
+        note.setCategory(request.getCategory());
+        note.setColor(request.getColor());
+        note.setPinned(request.isPinned());
 
         Note savedNote = noteRepository.save(note);
         return new NoteResponse(savedNote);
@@ -40,6 +43,9 @@ public class NoteService {
         note.setTitle(request.getTitle());
         note.setContent(request.getContent());
         note.setImagePath(request.getImagePath());
+        note.setCategory(request.getCategory());
+        note.setColor(request.getColor());
+        note.setPinned(request.isPinned());
 
         Note updatedNote = noteRepository.save(note);
         return new NoteResponse(updatedNote);

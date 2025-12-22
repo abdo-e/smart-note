@@ -16,6 +16,9 @@ public class NoteRequest {
     private String content;
 
     private String imagePath;
+    private String category;
+    private String color;
+    private boolean isPinned;
 
     // Getters and Setters
     public Long getUserId() {
@@ -48,5 +51,29 @@ public class NoteRequest {
 
     public void setImagePath(String imagePath) {
         this.imagePath = imagePath;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getColor() {
+        return color;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
+    }
+
+    public boolean isPinned() {
+        return isPinned;
+    }
+
+    public void setPinned(boolean pinned) {
+        isPinned = pinned;
     }
 }

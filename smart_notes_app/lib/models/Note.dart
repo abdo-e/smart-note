@@ -6,6 +6,9 @@ class Note {
   final String createdAt;
   final String updatedAt;
   final String? imagePath;
+  final String? category;
+  final String? color;
+  final bool isPinned;
   
   Note({
     required this.id,
@@ -15,6 +18,9 @@ class Note {
     required this.createdAt,
     required this.updatedAt,
     this.imagePath,
+    this.category,
+    this.color,
+    this.isPinned = false,
   });
   
   factory Note.fromJson(Map<String, dynamic> json) {
@@ -27,6 +33,9 @@ class Note {
       createdAt: json['createdAt']?.toString() ?? '',
       updatedAt: json['updatedAt']?.toString() ?? '',
       imagePath: json['imagePath'],
+      category: json['category'],
+      color: json['color'],
+      isPinned: json['pinned'] ?? json['isPinned'] ?? false,
     );
   }
   
@@ -39,6 +48,9 @@ class Note {
       'createdAt': createdAt,
       'updatedAt': updatedAt,
       'imagePath': imagePath,
+      'category': category,
+      'color': color,
+      'isPinned': isPinned,
     };
   }
 }

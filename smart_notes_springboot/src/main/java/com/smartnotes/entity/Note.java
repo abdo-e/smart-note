@@ -29,6 +29,15 @@ public class Note {
     @Column(name = "image_path", columnDefinition = "TEXT")
     private String imagePath;
 
+    @Column
+    private String category;
+
+    @Column
+    private String color;
+
+    @Column(name = "is_pinned")
+    private boolean isPinned = false;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -105,5 +114,29 @@ public class Note {
 
     public void setImagePath(String imagePath) {
         this.imagePath = imagePath;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getColor() {
+        return color;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
+    }
+
+    public boolean isPinned() {
+        return isPinned;
+    }
+
+    public void setPinned(boolean pinned) {
+        isPinned = pinned;
     }
 }
