@@ -1,144 +1,159 @@
-import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:smart_notes_app/models/Note.dart';
 import 'package:smart_notes_app/services/noteService.dart' as noteService;
 
-class NotesProvider extends ChangeNotifier {
-  List<Note> _notes = [];
-  bool _isLoading = false;
-  String? _errorMessage;
-  String _searchQuery = '';
+class NotesState {
+  final List<Note> notes;
+  final bool isLoading;
+  final String? errorMessage;
+  final String searchQuery;
 
-  List<Note> get notes {
-    if (_searchQuery.isEmpty) {
-      return _notes;
+  NotesState({
+    this.notes = const [],
+    this.isLoading = false,
+    this.errorMessage,
+    this.searchQuery = '',
+  });
+
+  List<Note> get filteredNotes {
+    if (searchQuery.isEmpty) {
+      return notes;
     }
-    return _notes.where((note) {
-      return note.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-             note.content.toLowerCase().contains(_searchQuery.toLowerCase());
+    return notes.where((note) {
+      return note.title.toLowerCase().contains(searchQuery.toLowerCase()) ||
+             note.content.toLowerCase().contains(searchQuery.toLowerCase());
     }).toList();
   }
 
-  bool get isLoading => _isLoading;
-  String? get errorMessage => _errorMessage;
+  NotesState copyWith({
+    List<Note>? notes,
+    bool? isLoading,
+    String? errorMessage,
+    String? searchQuery,
+    bool clearErrorMessage = false,
+  }) {
+    return NotesState(
+      notes: notes ?? this.notes,
+      isLoading: isLoading ?? this.isLoading,
+      errorMessage: clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
+      searchQuery: searchQuery ?? this.searchQuery,
+    );
+  }
+}
+
+class NotesNotifier extends Notifier<NotesState> {
+  @override
+  NotesState build() {
+    return NotesState();
+  }
 
   void setSearchQuery(String query) {
-    _searchQuery = query;
-    notifyListeners();
+    state = state.copyWith(searchQuery: query);
   }
 
   Future<void> loadNotes(String userId) async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
+    state = state.copyWith(isLoading: true, clearErrorMessage: true);
 
     try {
-      _notes = await noteService.fetchNotes(userId);
-      _isLoading = false;
-      notifyListeners();
+      final fetchedNotes = await noteService.fetchNotes(userId);
+      state = state.copyWith(notes: fetchedNotes, isLoading: false);
     } catch (e) {
-      _errorMessage = 'Failed to load notes: $e';
-      _isLoading = false;
-      notifyListeners();
+      state = state.copyWith(errorMessage: 'Failed to load notes: $e', isLoading: false);
     }
   }
 
   Future<bool> addNote(String userId, String title, String content, 
       {String? imagePath, String? category, String? color, bool isPinned = false}) async {
-    _errorMessage = null;
+    state = state.copyWith(clearErrorMessage: true);
     
     try {
       final note = await noteService.createNote(userId, title, content, 
           imagePath: imagePath, category: category, color: color, isPinned: isPinned);
       if (note != null) {
+        final newNotes = List<Note>.from(state.notes);
         if (isPinned) {
-          _notes.insert(0, note);
+          newNotes.insert(0, note);
         } else {
-          // Insert after pinned notes or at end if no pinned notes
-          int firstNonPinnedIndex = _notes.indexWhere((n) => !n.isPinned);
+          int firstNonPinnedIndex = newNotes.indexWhere((n) => !n.isPinned);
           if (firstNonPinnedIndex != -1) {
-            _notes.insert(firstNonPinnedIndex, note);
+            newNotes.insert(firstNonPinnedIndex, note);
           } else {
-            _notes.add(note);
+            newNotes.add(note);
           }
         }
-        notifyListeners();
+        state = state.copyWith(notes: newNotes);
         return true;
       }
-      _errorMessage = 'Failed to create note';
-      notifyListeners();
+      state = state.copyWith(errorMessage: 'Failed to create note');
       return false;
     } catch (e) {
-      _errorMessage = 'Failed to create note: $e';
-      notifyListeners();
+      state = state.copyWith(errorMessage: 'Failed to create note: $e');
       return false;
     }
   }
 
   Future<bool> editNote(String noteId, String title, String content, 
       {String? imagePath, String? category, String? color, bool isPinned = false}) async {
-    _errorMessage = null;
+    state = state.copyWith(clearErrorMessage: true);
     
     try {
       final updatedNote = await noteService.updateNote(noteId, title, content, 
           imagePath: imagePath, category: category, color: color, isPinned: isPinned);
       if (updatedNote != null) {
-        final index = _notes.indexWhere((note) => note.id == noteId);
+        final newNotes = List<Note>.from(state.notes);
+        final index = newNotes.indexWhere((note) => note.id == noteId);
         if (index != -1) {
-          _notes.removeAt(index);
-          // Re-insert to maintain sorting: Pinned first, then by update time (backend handles sorting on fetch)
-          // For local updates, we'll just insert based on pinning
+          newNotes.removeAt(index);
           if (updatedNote.isPinned) {
-            _notes.insert(0, updatedNote);
+            newNotes.insert(0, updatedNote);
           } else {
-            int firstNonPinnedIndex = _notes.indexWhere((n) => !n.isPinned);
+            int firstNonPinnedIndex = newNotes.indexWhere((n) => !n.isPinned);
             if (firstNonPinnedIndex != -1) {
-              _notes.insert(firstNonPinnedIndex, updatedNote);
+              newNotes.insert(firstNonPinnedIndex, updatedNote);
             } else {
-              _notes.add(updatedNote);
+              newNotes.add(updatedNote);
             }
           }
-          notifyListeners();
+          state = state.copyWith(notes: newNotes);
         }
         return true;
       }
-      _errorMessage = 'Failed to update note';
-      notifyListeners();
+      state = state.copyWith(errorMessage: 'Failed to update note');
       return false;
     } catch (e) {
-      _errorMessage = 'Failed to update note: $e';
-      notifyListeners();
+      state = state.copyWith(errorMessage: 'Failed to update note: $e');
       return false;
     }
   }
 
   Future<bool> removeNote(String noteId) async {
-    _errorMessage = null;
+    state = state.copyWith(clearErrorMessage: true);
     
     try {
       final success = await noteService.deleteNote(noteId);
       if (success) {
-        _notes.removeWhere((note) => note.id == noteId);
-        notifyListeners();
+        final newNotes = state.notes.where((note) => note.id != noteId).toList();
+        state = state.copyWith(notes: newNotes);
         return true;
       }
-      _errorMessage = 'Failed to delete note';
-      notifyListeners();
+      state = state.copyWith(errorMessage: 'Failed to delete note');
       return false;
     } catch (e) {
-      _errorMessage = 'Failed to delete note: $e';
-      notifyListeners();
+      state = state.copyWith(errorMessage: 'Failed to delete note: $e');
       return false;
     }
   }
 
   void clearError() {
-    _errorMessage = null;
-    notifyListeners();
+    state = state.copyWith(clearErrorMessage: true);
   }
 
   void clearNotes() {
-    _notes = [];
-    notifyListeners();
+    state = state.copyWith(notes: []);
   }
 }
+
+final notesProvider = NotifierProvider<NotesNotifier, NotesState>(() {
+  return NotesNotifier();
+});
 

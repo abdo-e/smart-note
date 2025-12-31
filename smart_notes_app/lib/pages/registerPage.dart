@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:smart_notes_app/providers/auth_provider.dart';
 
-class RegisterPage extends StatefulWidget {
+class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
 
   @override
-  State<RegisterPage> createState() => _RegisterPageState();
+  ConsumerState<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _RegisterPageState extends State<RegisterPage> {
+class _RegisterPageState extends ConsumerState<RegisterPage> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
@@ -145,9 +145,10 @@ class _RegisterPageState extends State<RegisterPage> {
                           },
                         ),
                         SizedBox(height: 30),
-                        Consumer<AuthProvider>(
-                          builder: (context, authProvider, child) {
-                            return authProvider.isLoading
+                        Consumer(
+                          builder: (context, ref, child) {
+                            final authState = ref.watch(authProvider);
+                            return authState.isLoading
                                 ? CircularProgressIndicator()
                                 : SizedBox(
                                     width: double.infinity,
@@ -155,7 +156,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                     child: ElevatedButton(
                                       onPressed: () async {
                                         if (formKey.currentState!.validate()) {
-                                          final success = await authProvider.register(
+                                          final success = await ref.read(authProvider.notifier).register(
                                             nameController.text,
                                             emailController.text,
                                             passwordController.text,
@@ -168,9 +169,10 @@ class _RegisterPageState extends State<RegisterPage> {
                                               (route) => false,
                                             );
                                           } else {
+                                            final errorMessage = ref.read(authProvider).errorMessage;
                                             ScaffoldMessenger.of(context).showSnackBar(
                                               SnackBar(
-                                                content: Text(authProvider.errorMessage ?? 'Registration failed'),
+                                                content: Text(errorMessage ?? 'Registration failed'),
                                                 backgroundColor: Colors.red,
                                                 behavior: SnackBarBehavior.floating,
                                                 shape: RoundedRectangleBorder(
