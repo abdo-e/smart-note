@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:smart_notes_app/providers/auth_provider.dart';
 
-class LoginPage extends StatefulWidget {
+class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends ConsumerState<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final formKey = GlobalKey<FormState>();
@@ -122,9 +122,10 @@ class _LoginPageState extends State<LoginPage> {
                           },
                         ),
                         SizedBox(height: 30),
-                        Consumer<AuthProvider>(
-                          builder: (context, authProvider, child) {
-                            return authProvider.isLoading
+                        Consumer(
+                          builder: (context, ref, child) {
+                            final authState = ref.watch(authProvider);
+                            return authState.isLoading
                                 ? CircularProgressIndicator()
                                 : SizedBox(
                                     width: double.infinity,
@@ -132,7 +133,7 @@ class _LoginPageState extends State<LoginPage> {
                                     child: ElevatedButton(
                                       onPressed: () async {
                                         if (formKey.currentState!.validate()) {
-                                          final success = await authProvider.login(
+                                          final success = await ref.read(authProvider.notifier).login(
                                             emailController.text,
                                             passwordController.text,
                                           );
@@ -144,9 +145,10 @@ class _LoginPageState extends State<LoginPage> {
                                               (route) => false,
                                             );
                                           } else {
+                                            final errorMessage = ref.read(authProvider).errorMessage;
                                             ScaffoldMessenger.of(context).showSnackBar(
                                               SnackBar(
-                                                content: Text(authProvider.errorMessage ?? 'Login failed'),
+                                                content: Text(errorMessage ?? 'Login failed'),
                                                 backgroundColor: Colors.red,
                                                 behavior: SnackBarBehavior.floating,
                                                 shape: RoundedRectangleBorder(

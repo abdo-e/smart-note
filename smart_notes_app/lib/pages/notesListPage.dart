@@ -1,31 +1,27 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:smart_notes_app/providers/auth_provider.dart';
 import 'package:smart_notes_app/providers/notes_provider.dart';
 import 'package:smart_notes_app/providers/theme_provider.dart';
-import 'dart:convert';
 
-class NotesListPage extends StatefulWidget {
+class NotesListPage extends ConsumerStatefulWidget {
   const NotesListPage({super.key});
 
   @override
-  State<NotesListPage> createState() => _NotesListPageState();
+  ConsumerState<NotesListPage> createState() => _NotesListPageState();
 }
 
-class _NotesListPageState extends State<NotesListPage> {
-  bool _isSearching = false;
-  final TextEditingController _searchController = TextEditingController();
-
-  @override
+class _NotesListPageState extends ConsumerState<NotesListPage> {
   void initState() {
     super.initState();
     // Load notes when page initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final notesProvider = Provider.of<NotesProvider>(context, listen: false);
+      final authState = ref.read(authProvider);
+      final notesNotifier = ref.read(notesProvider.notifier);
       
-      if (authProvider.currentUser != null) {
-        notesProvider.loadNotes(authProvider.currentUser!.id);
+      if (authState.currentUser != null) {
+        notesNotifier.loadNotes(authState.currentUser!.id);
       } else {
         Navigator.pushReplacementNamed(context, '/login');
       }
@@ -33,8 +29,8 @@ class _NotesListPageState extends State<NotesListPage> {
   }
 
   Future<void> handleDeleteNote(BuildContext context, String noteId) async {
-    final notesProvider = Provider.of<NotesProvider>(context, listen: false);
-    final success = await notesProvider.removeNote(noteId);
+    final notesNotifier = ref.read(notesProvider.notifier);
+    final success = await notesNotifier.removeNote(noteId);
     
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -55,9 +51,12 @@ class _NotesListPageState extends State<NotesListPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer3<AuthProvider, NotesProvider, ThemeProvider>(
-      builder: (context, authProvider, notesProvider, themeProvider, child) {
-        return Scaffold(
+    final authState = ref.watch(authProvider);
+    final notesState = ref.watch(notesProvider);
+    final isDarkMode = ref.watch(themeProvider);
+    final themeNotifier = ref.read(themeProvider.notifier);
+
+    return Scaffold(
           appBar: AppBar(
             title: _isSearching
                 ? TextField(
@@ -70,7 +69,7 @@ class _NotesListPageState extends State<NotesListPage> {
                     ),
                     style: TextStyle(color: Colors.white, fontSize: 18),
                     onChanged: (value) {
-                      notesProvider.setSearchQuery(value);
+                      ref.read(notesProvider.notifier).setSearchQuery(value);
                     },
                   )
                 : Text(
@@ -90,7 +89,7 @@ class _NotesListPageState extends State<NotesListPage> {
                     _isSearching = !_isSearching;
                     if (!_isSearching) {
                       _searchController.clear();
-                      notesProvider.setSearchQuery('');
+                      ref.read(notesProvider.notifier).setSearchQuery('');
                     }
                   });
                 },
@@ -98,28 +97,28 @@ class _NotesListPageState extends State<NotesListPage> {
               ),
               IconButton(
                 icon: Icon(
-                  themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                  isDarkMode ? Icons.light_mode : Icons.dark_mode,
                   color: Colors.white,
                 ),
                 onPressed: () {
-                  themeProvider.toggleTheme();
+                  themeNotifier.toggleTheme();
                 },
-                tooltip: themeProvider.isDarkMode ? 'Light Mode' : 'Dark Mode',
+                tooltip: isDarkMode ? 'Light Mode' : 'Dark Mode',
               ),
               IconButton(
                 icon: Icon(Icons.logout, color: Colors.white),
                 onPressed: () {
-                  authProvider.logout();
-                  notesProvider.clearNotes();
+                  ref.read(authProvider.notifier).logout();
+                  ref.read(notesProvider.notifier).clearNotes();
                   Navigator.pushReplacementNamed(context, '/login');
                 },
                 tooltip: 'Logout',
               ),
             ],
           ),
-          body: notesProvider.isLoading
+          body: notesState.isLoading
               ? Center(child: CircularProgressIndicator())
-              : notesProvider.notes.isEmpty
+              : notesState.filteredNotes.isEmpty
                   ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -151,9 +150,9 @@ class _NotesListPageState extends State<NotesListPage> {
                     )
                   : ListView.builder(
                       padding: EdgeInsets.all(16),
-                      itemCount: notesProvider.notes.length,
+                      itemCount: notesState.filteredNotes.length,
                       itemBuilder: (context, index) {
-                        final note = notesProvider.notes[index];
+                        final note = notesState.filteredNotes[index];
                         return Container(
                           margin: EdgeInsets.only(bottom: 16),
                           decoration: BoxDecoration(
@@ -333,7 +332,5 @@ class _NotesListPageState extends State<NotesListPage> {
             ),
           ),
         );
-      },
-    );
   }
 }

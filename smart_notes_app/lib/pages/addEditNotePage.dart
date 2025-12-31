@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:smart_notes_app/providers/auth_provider.dart';
 import 'package:smart_notes_app/providers/notes_provider.dart';
 import 'package:smart_notes_app/models/Note.dart';
@@ -7,14 +7,14 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 import 'dart:io';
 
-class AddEditNotePage extends StatefulWidget {
+class AddEditNotePage extends ConsumerStatefulWidget {
   const AddEditNotePage({super.key});
 
   @override
-  State<AddEditNotePage> createState() => _AddEditNotePageState();
+  ConsumerState<AddEditNotePage> createState() => _AddEditNotePageState();
 }
 
-class _AddEditNotePageState extends State<AddEditNotePage> {
+class _AddEditNotePageState extends ConsumerState<AddEditNotePage> {
   final TextEditingController titleController = TextEditingController();
   final TextEditingController contentController = TextEditingController();
   final formKey = GlobalKey<FormState>();
@@ -102,17 +102,17 @@ class _AddEditNotePageState extends State<AddEditNotePage> {
 
   Future<void> handleSaveNote(BuildContext context) async {
     if (formKey.currentState!.validate()) {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final notesProvider = Provider.of<NotesProvider>(context, listen: false);
+      final authState = ref.read(authProvider);
+      final notesNotifier = ref.read(notesProvider.notifier);
       
-      if (authProvider.currentUser == null) {
+      if (authState.currentUser == null) {
         Navigator.pushReplacementNamed(context, '/login');
         return;
       }
 
       bool success;
       if (isEditMode) {
-        success = await notesProvider.editNote(
+        success = await notesNotifier.editNote(
           currentNote!.id,
           titleController.text,
           contentController.text,
@@ -122,8 +122,8 @@ class _AddEditNotePageState extends State<AddEditNotePage> {
           isPinned: _isPinned,
         );
       } else {
-        success = await notesProvider.addNote(
-          authProvider.currentUser!.id,
+        success = await notesNotifier.addNote(
+          authState.currentUser!.id,
           titleController.text,
           contentController.text,
           imagePath: _imageBase64,
@@ -140,14 +140,17 @@ class _AddEditNotePageState extends State<AddEditNotePage> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context);
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(notesProvider.errorMessage ?? 'Error saving note'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        if (mounted) {
+          final errorMessage = ref.read(notesProvider).errorMessage;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage ?? 'Error saving note'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }
@@ -375,9 +378,10 @@ class _AddEditNotePageState extends State<AddEditNotePage> {
                 ),
               ],
               SizedBox(height: 32),
-              Consumer<NotesProvider>(
-                builder: (context, notesProvider, child) {
-                  return notesProvider.isLoading
+              Consumer(
+                builder: (context, ref, child) {
+                  final notesState = ref.watch(notesProvider);
+                  return notesState.isLoading
                       ? Center(child: CircularProgressIndicator())
                       : SizedBox(
                           width: double.infinity,
